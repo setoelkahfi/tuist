@@ -11,9 +11,9 @@ extension TuistGraph.Config {
     ///   - manifest: Manifest representation of Tuist config.
     ///   - path: The path of the config file.
     static func from(manifest: ProjectDescription.Config, at path: AbsolutePath) throws -> TuistGraph.Config {
-        let generationOptions = try manifest.generationOptions.map { try TuistGraph.Config.GenerationOption.from(manifest: $0) }
-        let compatibleXcodeVersions = TuistGraph.CompatibleXcodeVersions.from(manifest: manifest.compatibleXcodeVersions)
         let generatorPaths = GeneratorPaths(manifestDirectory: path)
+        let generationOptions = try manifest.generationOptions.map { try TuistGraph.Config.GenerationOption.from(manifest: $0, generatorPaths: generatorPaths) }
+        let compatibleXcodeVersions = TuistGraph.CompatibleXcodeVersions.from(manifest: manifest.compatibleXcodeVersions)
         let plugins = try manifest.plugins.map { try PluginLocation.from(manifest: $0, generatorPaths: generatorPaths) }
         let swiftVersion = manifest.swiftVersion?.description
 
@@ -53,7 +53,7 @@ extension TuistGraph.Config.GenerationOption {
     /// - Parameters:
     ///   - manifest: Manifest representation of Tuist config generation options
     ///   - generatorPaths: Generator paths.
-    static func from(manifest: ProjectDescription.Config.GenerationOptions) throws -> TuistGraph.Config.GenerationOption {
+    static func from(manifest: ProjectDescription.Config.GenerationOptions, generatorPaths: GeneratorPaths) throws -> TuistGraph.Config.GenerationOption {
         switch manifest {
         case let .xcodeProjectName(templateString):
             return .xcodeProjectName(templateString.description)
@@ -67,8 +67,8 @@ extension TuistGraph.Config.GenerationOption {
             return .disableSynthesizedResourceAccessors
         case .disableShowEnvironmentVarsInScriptPhases:
             return .disableShowEnvironmentVarsInScriptPhases
-        case .enableCodeCoverage:
-            return .enableCodeCoverage
+        case let .enableCodeCoverage(mode):
+            return try .enableCodeCoverage(.from(manifest: mode, generatorPaths: generatorPaths))
         case .resolveDependenciesWithSystemScm:
             return .resolveDependenciesWithSystemScm
         case .disablePackageVersionLocking:
